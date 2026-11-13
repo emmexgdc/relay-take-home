@@ -2,4 +2,4 @@
 set -e
 
 npm run migrate
-npm start
+exec node src/server.js
