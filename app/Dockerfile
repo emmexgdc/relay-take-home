@@ -11,6 +11,6 @@ RUN npm ci --omit=dev
 COPY . .
 RUN rm -f .env
 
-EXPOSE 3000
+EXPOSE 8080
 
 ENTRYPOINT ["sh", "./entrypoint.sh"]

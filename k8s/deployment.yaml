@@ -27,7 +27,8 @@ spec:
           image: relay:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 8080
           envFrom:
             - configMapRef:
                 name: relay-config
@@ -45,7 +46,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 3000
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 1
