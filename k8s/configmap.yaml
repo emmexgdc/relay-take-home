@@ -5,4 +5,6 @@ metadata:
   namespace: relay
 data:
   PORT: "8080"
-  PG_POOL_MAX: "25"
+  # 8 per pod x hpa maxReplicas 10 = 80 of the database's 100 max_connections,
+  # leaving 20 for migrations, admin and the data team. Recompute if either changes.
+  PG_POOL_MAX: "8"

@@ -9,6 +9,8 @@ spec:
     kind: Deployment
     name: relay
   minReplicas: 1
+  # Bounded by the database connection budget: maxReplicas x PG_POOL_MAX must
+  # stay under 100 (see configmap.yaml).
   maxReplicas: 10
   metrics:
     - type: Resource
