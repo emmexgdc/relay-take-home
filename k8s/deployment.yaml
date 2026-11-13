@@ -25,6 +25,7 @@ spec:
       containers:
         - name: relay
           image: relay:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           envFrom:
