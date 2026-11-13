@@ -13,7 +13,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY . .
-RUN rm -f .env
 
 EXPOSE 8080
 
