@@ -7,7 +7,6 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
-ENV NODE_OPTIONS=--max-old-space-size=512
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev

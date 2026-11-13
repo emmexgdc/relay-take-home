@@ -43,6 +43,10 @@ spec:
                 secretKeyRef:
                   name: relay-secrets
                   key: SIGNING_SECRET
+            # Keep the heap below the memory limit (about 75%) so Node collects
+            # garbage within what the container has. Change together with limits.memory.
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=192
           livenessProbe:
             httpGet:
               path: /health
@@ -52,5 +56,8 @@ spec:
             timeoutSeconds: 1
             failureThreshold: 2
           resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
             limits:
               memory: 256Mi
