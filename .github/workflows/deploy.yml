@@ -4,32 +4,48 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
   AWS_REGION: eu-west-1
   ECR_REPO: 123456789012.dkr.ecr.eu-west-1.amazonaws.com/relay
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@master
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
-        run: aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REPO
+        run: aws ecr get-login-password | docker login --username AWS --password-stdin "${ECR_REPO%%/*}"
 
       - name: Build and push
         run: |
-          docker build -t $ECR_REPO:latest app
-          docker push $ECR_REPO:latest
+          docker build -t "$ECR_REPO:$IMAGE_TAG" app
+          docker push "$ECR_REPO:$IMAGE_TAG"
 
       - name: Deploy to production
         run: |
-          aws eks update-kubeconfig --name relay-prod
-          kubectl apply -f k8s/
-          kubectl -n relay rollout restart deployment/relay
+          aws eks update-kubeconfig --name relay-prod --region "$AWS_REGION"
+          sed "s#image: relay:latest#image: $ECR_REPO:$IMAGE_TAG#" k8s/deployment.yaml > deployment.rendered.yaml
+          grep -q "image: $ECR_REPO:$IMAGE_TAG" deployment.rendered.yaml
+          kubectl apply \
+            -f k8s/00-namespace.yaml \
+            -f k8s/configmap.yaml \
+            -f k8s/service.yaml \
+            -f k8s/hpa.yaml \
+            -f deployment.rendered.yaml
+          kubectl -n relay rollout status deployment/relay --timeout=300s
