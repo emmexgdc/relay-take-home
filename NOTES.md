@@ -352,7 +352,16 @@ The pod now aborts with exit 134 and a clear message (reason 2), and clients see
 
   Liveness calls `/health`, which queries the database, with `timeout=1s` and 2 failures allowed, so a database blip would restart every pod.
 - **Replicas.** After I scaled to 2 by hand, `kubectl apply -f k8s/deployment.yaml` took it back to 1, because the file says `replicas: 1`. Every deploy would do that to the HPA. `minReplicas` is 1 and there is no PodDisruptionBudget.
-- **Migrations** run in every pod at startup with no lock. From reading `entrypoint.sh` and `migrate.js`.
+- **Migrations** run in every pod at startup with no lock (from reading `entrypoint.sh` and `migrate.js`). They also need the database to be up first. On a fresh `make up`, relay restarted 3 times until Postgres was ready, then ran normally:
+
+  ```
+  relay-584c868bcb-l5xs5      0/1     CrashLoopBackOff   2 (18s ago)   34s
+  relay-584c868bcb-l5xs5      1/1     Running            3 (62s ago)   78s
+  $ kubectl -n relay logs deploy/relay --previous
+  migrate: failed: connect ECONNREFUSED 10.96.166.115:5432
+  ```
+
+  In production the managed database is already running, so this mostly affects local setups. Running migrations once as a Job, before the app starts, would fix both problems.
 - **Image.** Every process runs as `root` (see the `ps` output in change 5), on the full `node:22` base. CI has no tests or image scan.
 - **Terraform, beyond reason 3** (from reading):
   - `eks.tf`: node group in one subnet and AZ (`public_a`); EKS endpoint open to 0.0.0.0/0; node role has `s3:*` and `secretsmanager:*` on `*` with `http_tokens = "optional"`, so any pod can use it; `encrypted = false` on node disks.
